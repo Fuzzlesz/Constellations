@@ -120,7 +120,7 @@ namespace Hooks
 
 	void HandToHandPerks::CombatHitSpellPatch()
 	{
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::CombatHit, 0x194);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::CombatHit, 0x185);
 		REL::make_pattern<"E8">().match_or_fail(hook.address());
 
 		// TRAMPOLINE: 14

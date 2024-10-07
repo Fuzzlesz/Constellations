@@ -25,13 +25,13 @@ namespace Hooks
 
 	void Athletics::ExperiencePatch()
 	{
-		auto vtbl = REL::Relocation<std::uintptr_t>(RE::Offset::PlayerCharacter::Vtbl);
+		auto vtbl = REL::Relocation<std::uintptr_t>(RE::PlayerCharacter::VTABLE[0]);
 		_Update = vtbl.write_vfunc(173, &Athletics::Update);
 	}
 
 	void Athletics::MoveSpeedPatch()
 	{
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::ComputeMovementType, 0x51);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::ComputeMovementType, 0x1A);
 		REL::make_pattern<"E8">().match_or_fail(hook.address());
 
 		// TRAMPOLINE: 14

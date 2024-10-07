@@ -16,8 +16,9 @@ namespace Hooks
 
 	void HandToHand::ExperiencePatch()
 	{
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::CombatHit, 0x292);
-		REL::make_pattern<"48 8B 8C 24 80 00 00 00">().match_or_fail(hook.address());
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::CombatHit, 0x28B);
+		REL::make_pattern<"48 8B 4C 24 70 48 85 C9 74 19 48 81 C1 C0 00 00 00">().match_or_fail(
+			hook.address());
 
 		struct Patch : Xbyak::CodeGenerator
 		{
@@ -26,12 +27,34 @@ namespace Hooks
 				Xbyak::Label retn;
 				Xbyak::Label funcLbl;
 
-				lea(rcx, ptr[rsp + 0x50]);
-				call(ptr[rip + funcLbl]);
-				mov(rcx, ptr[rsp + 0x80]);
+				// Save important registers
+				push(rcx);
+				push(rdx);
+				push(r8);
+				push(r9);
 
-				jmp(ptr[rip]);
-				dq(a_hookAddr + 0x8);
+				lea(rcx, ptr[rsp + 0x60]);  // Adjust for pushed registers
+				call(ptr[rip + funcLbl]);
+
+				// Restore registers
+				pop(r9);
+				pop(r8);
+				pop(rdx);
+				pop(rcx);
+
+				// Original instructions
+				mov(rcx, ptr[rsp + 0x70]);
+				test(rcx, rcx);
+				jz("skip");
+				add(rcx, 0xC0);
+				jmp(ptr[rip + retn]);
+
+				L("skip");
+				add(rsp, 8);  // Adjust stack to compensate for the skipped instruction
+				jmp(ptr[rip + retn]);
+
+				L(retn);
+				dq(a_hookAddr + 0x11);  // Jump back to instruction after our hook
 
 				L(funcLbl);
 				dq(std::bit_cast<std::uintptr_t>(&HandToHand::ProcessHandToHandXP));
@@ -42,13 +65,13 @@ namespace Hooks
 
 		// TRAMPOLINE: 8
 		auto& trampoline = SKSE::GetTrampoline();
-		REL::safe_fill(hook.address(), REL::NOP, 0x8);
+		REL::safe_fill(hook.address(), REL::NOP, 0x11);
 		trampoline.write_branch<6>(hook.address(), patch->getCode());
 	}
 
 	void HandToHand::SkillMultiplierPatch()
 	{
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::HitData::InitializeHitData, 0x24D);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::HitData::InitializeHitData, 0x26A);
 		REL::make_pattern<"E8">().match_or_fail(hook.address());
 
 		// TRAMPOLINE: 14
@@ -77,7 +100,7 @@ namespace Hooks
 	{
 		_GetUnarmedDamage(a_avOwner, a_damage);
 
-		const auto actor = SKSE::stl::adjust_pointer<RE::Actor>(a_avOwner, -0xB8);
+		const auto actor = SKSE::stl::adjust_pointer<RE::Actor>(a_avOwner, -0xB0);
 		HandToHandPerks::HandleBaseDamage(actor, a_damage);
 
 		if (a_avOwner->GetIsPlayerOwner()) {

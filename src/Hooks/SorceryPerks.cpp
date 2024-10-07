@@ -40,7 +40,7 @@ namespace Hooks
 
 	void SorceryPerks::AbsorbChargePatch()
 	{
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::CheckAbsorb, 0x7F);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::CheckAbsorb, 0x7D);
 		REL::make_pattern<"44 8D 42 17 FF 53 30">().match_or_fail(hook.address());
 
 		// TRAMPOLINE: 8
@@ -99,7 +99,7 @@ namespace Hooks
 		auto hook = REL::Relocation<std::uintptr_t>(
 			RE::Offset::Projectile::HandleSpellCollision,
 			0x265);
-		REL::make_pattern<"48 85 DB 74 1E">().match_or_fail(hook.address());
+		REL::make_pattern<"48 85 DB 74 1C">().match_or_fail(hook.address());
 
 		struct Patch : Xbyak::CodeGenerator
 		{
@@ -153,7 +153,7 @@ namespace Hooks
 	{
 		_SetCastingTimerForCharge(a_caster);
 
-		const auto actor = a_caster->owner;
+		const auto actor = a_caster->actor;
 		if (!actor)
 			return;
 
@@ -343,7 +343,7 @@ namespace Hooks
 			if (shooter) {
 				RE::Projectile::LaunchData launchData;
 				launchData.origin = a_projectile->GetPosition();
-				launchData.projectile = baseForm;
+				launchData.projectileBase = baseForm;
 				launchData.shooter = a_actor;
 				launchData.combatController = a_actor->combatController;
 				launchData.desiredTarget = shooter.get();
@@ -360,13 +360,13 @@ namespace Hooks
 					baseForm->data.gravity,
 					RE::ACTOR_LOS_LOCATION::kTorso);
 
-				launchData.heading = angle.z;
-				launchData.pitch = angle.x;
-				launchData.unk9E = false;  // fire at the specified angle
+				launchData.angleZ = angle.z;
+				launchData.angleX = angle.x;
+				launchData.autoAim = false;  // fire at the specified angle
 				launchData.useOrigin = true;
-				launchData.unkA2 = true;
+				launchData.forceConeOfFire = true;
 
-				RE::Projectile::Launch(launchData);
+				RE::Projectile::LaunchData();
 			}
 
 			if (spell->GetCastingType() != RE::MagicSystem::CastingType::kConcentration &&

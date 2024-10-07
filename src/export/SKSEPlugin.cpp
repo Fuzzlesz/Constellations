@@ -37,19 +37,6 @@ namespace
 	}
 }
 
-extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []()
-{
-	SKSE::PluginVersionData v{};
-
-	v.PluginVersion(Plugin::VERSION);
-	v.PluginName(Plugin::NAME);
-	v.AuthorName("Parapets"sv);
-
-	v.UsesAddressLibrary(true);
-
-	return v;
-}();
-
 extern "C" DLLEXPORT bool SKSEAPI
 SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
@@ -58,11 +45,13 @@ SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 	a_info->version = Plugin::VERSION[0];
 
 	if (a_skse->IsEditor()) {
+		logger::critical("Loaded in editor, marking as incompatible"sv);
 		return false;
 	}
 
 	const auto ver = a_skse->RuntimeVersion();
-	if (ver < SKSE::RUNTIME_1_6_1130) {
+	if (ver < SKSE::RUNTIME_1_5_39) {
+		logger::critical(FMT_STRING("Unsupported runtime version {}"), ver.string());
 		return false;
 	}
 
@@ -75,10 +64,11 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	logger::info("{} v{}"sv, Plugin::NAME, Plugin::VERSION.string());
 
 	SKSE::Init(a_skse);
-	SKSE::AllocTrampoline(249);
 
-	Hooks::HandToHand::WriteHooks();
+	SKSE::AllocTrampoline(269);
+
 	Hooks::Athletics::WriteHooks();
+	Hooks::HandToHand::WriteHooks();
 	Hooks::Sorcery::WriteHooks();
 
 	Hooks::AthleticsPerks::WriteHooks();
@@ -89,32 +79,34 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 		[](auto msg)
 		{
 			switch (msg->type) {
-			case SKSE::MessagingInterface::kDataLoaded:
-			{
+			case SKSE::MessagingInterface::kPostPostLoad:
+
 				RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink(
 					&Data::ModObjectManager::Instance());
-			} break;
-			case SKSE::MessagingInterface::kPostLoadGame:
-			{
+
 				Data::ModObjectManager::Instance().Reload();
-			} break;
+
+				SKSE::GetMessagingInterface()->RegisterListener(
+					"CustomSkills",
+					[](auto msg)
+					{
+						CustomSkills::QueryCustomSkillsInterface(
+							msg,
+							PluginAPIStorage::get().customSkills);
+
+						const auto customSkills = PluginAPIStorage::get().customSkills;
+
+						if (!customSkills) {
+							return;
+						}
+
+						if (const auto source = customSkills->GetEventDispatcher<
+												CustomSkills::SkillIncreaseEvent>()) {
+							source->AddEventSink(
+								Hooks::Athletics::SkillIncreaseHandler::Instance());
+						}
+					});
 			}
 		});
-
-	SKSE::GetMessagingInterface()->RegisterListener(
-		"CustomSkills",
-		[](auto msg)
-		{
-			CustomSkills::QueryCustomSkillsInterface(msg, PluginAPIStorage::get().customSkills);
-			const auto customSkills = PluginAPIStorage::get().customSkills;
-			if (!customSkills)
-				return;
-
-			if (const auto source =
-					customSkills->GetEventDispatcher<CustomSkills::SkillIncreaseEvent>()) {
-				source->AddEventSink(Hooks::Athletics::SkillIncreaseHandler::Instance());
-			}
-		});
-
 	return true;
-}
+};

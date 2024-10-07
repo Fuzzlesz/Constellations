@@ -26,7 +26,7 @@ namespace Hooks
 
 	void Sorcery::FireAndForgetXPPatch()
 	{
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::MagicTarget::AddTarget, 0x20B);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::MagicTarget::AddTarget, 0x1E8);
 		REL::make_pattern<"E8">().match_or_fail(hook.address());
 
 		// TRAMPOLINE: 14
@@ -69,7 +69,7 @@ namespace Hooks
 	void Sorcery::NoTargetXPPatch()
 	{
 		// Light
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::MagicCaster::FindTargets, 0x524);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::MagicCaster::FindTargets, 0x4F7);
 		REL::make_pattern<"48 8B 45 A8 48 89 44 24 48">().match_or_fail(hook.address());
 
 		struct Patch : Xbyak::CodeGenerator
@@ -105,8 +105,8 @@ namespace Hooks
 		// Value Modifier family, Detect Life, Telekinesis
 		auto hook = REL::Relocation<std::uintptr_t>(
 			RE::Offset::ActiveEffect::DoStandardCustomSkillUsage,
-			0xF5);
-		REL::make_pattern<"48 8B 47 48 48 89 44 24 40">().match_or_fail(hook.address());
+			0x3A);
+		REL::make_pattern<"48 8B 47 48 48 89 44 24 38">().match_or_fail(hook.address());
 
 		struct Patch : Xbyak::CodeGenerator
 		{
@@ -123,14 +123,14 @@ namespace Hooks
 					static_cast<std::uint32_t>(RE::MagicSystem::CastingSource::kInstant));
 				jz(done);
 				mov(rax, ptr[rdi + 0x48]);
-				mov(ptr[rsp + 0x40], rax);
+				mov(ptr[rsp + 0x38], rax);
 
 				jmp(ptr[rip]);
 				dq(a_hookAddr + 0x9);
 
 				L(done);
 				jmp(ptr[rip]);
-				dq(a_hookAddr + 0xF9);
+				dq(a_hookAddr + 0xFF);
 
 				L(funcLbl);
 				dq(std::bit_cast<std::uintptr_t>(&Sorcery::SkillUseCustomDelta));
@@ -148,7 +148,7 @@ namespace Hooks
 	void Sorcery::BoundWeaponXPPatch()
 	{
 		// Bound Weapon
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::BoundItemEffect::Update, 0x221);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::BoundItemEffect::Update, 0x10A);
 		REL::make_pattern<"48 8B 47 48 48 89 44 24 38">().match_or_fail(hook.address());
 
 		struct Patch : Xbyak::CodeGenerator
@@ -184,7 +184,7 @@ namespace Hooks
 		// Summon Creature, Reanimate
 		auto hook = REL::Relocation<std::uintptr_t>(
 			RE::Offset::Actor::UpdateCommandedActor,
-			0x196);
+			0x194);
 		REL::make_pattern<"48 8B 47 48 48 89 44 24 40">().match_or_fail(hook.address());
 
 		struct Patch : Xbyak::CodeGenerator
@@ -224,23 +224,23 @@ namespace Hooks
 		{ RE::Offset::ActiveEffect::AdjustForPerks, 0x60, EffectFlag::kPowerAffectsMagnitude },
 		// Target level (illusion, command, etc.) magnitude
 		{ RE::Offset::ActiveEffectFactory::CheckTargetLevelMagnitude,
-		  0x48,
+		  0x3F,
 		  EffectFlag::kPowerAffectsMagnitude },
 		// Item card duration
 		{ RE::Offset::ItemCard::GetMagicItemDescription,
-		  0x31B,
+		  0x1F3,
 		  EffectFlag::kPowerAffectsDuration },
 		// Item card magnitude
 		{ RE::Offset::ItemCard::GetMagicItemDescription,
-		  0x33D,
+		  0x215,
 		  EffectFlag::kPowerAffectsMagnitude },
 		// Effect description magnitude
 		{ RE::Offset::EffectItemReplaceTagsFunc::Invoke,
-		  0x196,
+		  0x81,
 		  EffectFlag::kPowerAffectsMagnitude },
 		// Effect description duration
 		{ RE::Offset::EffectItemReplaceTagsFunc::Invoke,
-		  0x253,
+		  0x13E,
 		  EffectFlag::kPowerAffectsDuration },
 	});
 
@@ -338,7 +338,7 @@ namespace Hooks
 
 				L(calcDone);
 				jmp(ptr[rip]);
-				dq(a_hookAddr + 0x3B);
+				dq(a_hookAddr + 0x3E);
 
 				L(funcLbl);
 				dq(std::bit_cast<std::uintptr_t>(&Sorcery::GetEnchantmentCost));

@@ -41,7 +41,7 @@ namespace Hooks
 		if (::GetModuleHandle(TEXT("po3_Tweaks")))
 			return;
 
-		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::Jump, 0x17F);
+		auto hook = REL::Relocation<std::uintptr_t>(RE::Offset::Actor::Jump, 0x190);
 		REL::make_pattern<"E8">().match_or_fail(hook.address());
 
 		// TRAMPOLINE: 14
