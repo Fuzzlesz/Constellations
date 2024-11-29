@@ -75,27 +75,20 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	Hooks::HandToHandPerks::WriteHooks();
 	Hooks::SorceryPerks::WriteHooks();
 
-	SKSE::GetMessagingInterface()->RegisterListener(
-		[](auto msg)
+    SKSE::GetMessagingInterface()->RegisterListener(
+		[](SKSE::MessagingInterface::Message* msg)
 		{
 			switch (msg->type) {
-			case SKSE::MessagingInterface::kPostPostLoad:
-
-				RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink(
-					&Data::ModObjectManager::Instance());
-
-				Data::ModObjectManager::Instance().Reload();
-
+			case SKSE::MessagingInterface::kPostLoad:
 				SKSE::GetMessagingInterface()->RegisterListener(
 					"CustomSkills",
-					[](auto msg)
+					[](SKSE::MessagingInterface::Message* msg)
 					{
 						CustomSkills::QueryCustomSkillsInterface(
 							msg,
 							PluginAPIStorage::get().customSkills);
 
 						const auto customSkills = PluginAPIStorage::get().customSkills;
-
 						if (!customSkills) {
 							return;
 						}
@@ -106,7 +99,18 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 								Hooks::Athletics::SkillIncreaseHandler::Instance());
 						}
 					});
+				break;
+
+			case SKSE::MessagingInterface::kDataLoaded:
+				RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink(
+					&Data::ModObjectManager::Instance());
+				break;
+
+			case SKSE::MessagingInterface::kPostLoadGame:
+				Data::ModObjectManager::Instance().Reload();
+				break;
 			}
 		});
+
 	return true;
-};
+}

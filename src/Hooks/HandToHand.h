@@ -17,6 +17,7 @@ namespace Hooks
 		static void ProcessHandToHandXP(const RE::HitData& a_hitData);
 		static void GetUnarmedDamage(const RE::ActorValueOwner* a_avOwner, float& a_damage);
 
+		inline static REL::Relocation<decltype(&ProcessHandToHandXP)> _ProcessHandToHandXP;
 		inline static REL::Relocation<decltype(&GetUnarmedDamage)> _GetUnarmedDamage;
 	};
 }
